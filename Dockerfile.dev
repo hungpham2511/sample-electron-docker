@@ -1,0 +1,71 @@
+FROM ros:kinetic-ros-base-xenial
+MAINTAINER Eureka Robotics Pte Ltd
+
+ENV DEBIAN_FRONTEND noninteractive
+
+# Install some Linux tools
+RUN echo -e "\n[Installing Linux tools]"
+RUN rm -rf /var/lib/apt/lists/* && apt-get update \
+    && apt-get install -y --no-install-recommends apt-utils lsb-release sudo unzip wget python-catkin-tools ssh vim
+
+# Install everything as root
+USER root
+
+# Install ROS packages
+RUN echo -e "\n[Installing base ROS dependencies]"
+RUN apt-get install -qq -y --no-install-recommends \
+        ros-kinetic-xacro \
+	ros-kinetic-controller-interface ros-kinetic-transmission-interface \
+	python-termcolor ros-kinetic-diagnostic-updater \
+	ros-kinetic-rqt-runtime-monitor ros-kinetic-position-controllers \
+	ros-kinetic-controller-manager ros-kinetic-baldor \
+	ros-kinetic-control-msgs ros-kinetic-robot-state-publisher \
+	ros-kinetic-bcap ros-kinetic-image-geometry \
+	ros-kinetic-hardware-interface ros-kinetic-diagnostic-aggregator \
+	ros-kinetic-controller-manager-msgs ros-kinetic-realtime-tools \
+	ros-kinetic-tf python-sklearn ros-kinetic-joint-state-controller \
+	ros-kinetic-joint-trajectory-controller ros-kinetic-python-orocos-kdl \
+	ros-kinetic-tf-conversions \
+	ros-kinetic-control-toolbox ros-kinetic-joint-limits-interface \
+	ros-kinetic-joint-state-publisher \
+	python-tabulate ros-kinetic-rqt-robot-monitor\
+	ros-kinetic-effort-controllers
+
+RUN echo -e "\n[Installing image-processing ROS dependencies]"
+RUN apt-get install -qq -y --no-install-recommends \
+	ros-kinetic-camera-calibration-parsers ros-kinetic-cv-bridge\
+	ros-kinetic-image-transport ros-kinetic-image-view \
+        ros-kinetic-camera-calibration ros-kinetic-image-proc ros-kinetic-roslint \
+        curl libcurl3 libcurl4-openssl-dev net-tools \
+        ros-kinetic-camera-info-manager ros-kinetic-resource-retriever ros-kinetic-usb-cam \
+        ros-kinetic-theora-image-transport
+
+
+# User and permissions
+ARG user=hung
+ARG group=hung
+ARG uid=999
+ARG gid=999
+ARG home=/home/${user}
+RUN mkdir -p /etc/sudoers.d \
+    && groupadd -g ${gid} ${group} \
+    && useradd -d ${home} -u ${uid} -g ${gid} -m -s /bin/bash ${user} \
+    && echo "${user} ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/sudoers_${user}
+USER ${user}
+
+
+# Nodejs and Electronjs
+RUN curl -sL https://deb.nodesource.com/setup_10.x | sudo -E bash -
+RUN curl -sL https://dl.yarnpkg.com/debian/pubkey.gpg | sudo apt-key add -
+RUN echo "deb https://dl.yarnpkg.com/debian/ stable main" | sudo tee /etc/apt/sources.list.d/yarn.list
+RUN sudo apt-get update && sudo apt-get install nodejs yarn
+
+RUN mkdir ${home}/app
+
+WORKDIR ${home}/app
+COPY --chown=hung ./package.json package.json
+RUN npm install
+COPY --chown=hung . .
+
+RUN sudo apt-get install -y libnss3
+
