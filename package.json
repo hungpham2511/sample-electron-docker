@@ -10,7 +10,7 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-      "electron": "^5.0.2",
+      "electron": "^18.3.7",
       "rosnodejs": "^3.0.0"
   }
 }
